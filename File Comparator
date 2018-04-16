@@ -1,0 +1,123 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Windows;
+using System.Windows.Documents;
+
+namespace WPFbasics
+{
+    /// <summary>
+    /// Interaction logic for MainWindow.xaml
+    /// </summary>
+    public partial class MainWindow : Window
+    {
+        public MainWindow()
+        {
+            InitializeComponent();
+        }
+
+        public string File1 { get; set; }
+        public string File2 { get; set; }
+
+        private void File1_Button_Click(object sender, RoutedEventArgs e)
+        {
+            SelectFile(sender);
+        }
+
+        private void File2_Button_Click(object sender, RoutedEventArgs e)
+        {
+            SelectFile(sender);
+        }
+
+        private void SelectFile(object parent)
+        {
+
+            Microsoft.Win32.OpenFileDialog dlg = new Microsoft.Win32.OpenFileDialog();
+
+            dlg.DefaultExt = ".txt";
+            dlg.Filter = "Text documents (.txt)|.txt";
+
+            bool? result = dlg.ShowDialog();
+
+            if (result == true)
+            {
+                string filename = dlg.FileName;
+                FileNameTextBox.Text = filename;
+
+                Paragraph paragraph = new Paragraph();
+                string fileContent = System.IO.File.ReadAllText(filename);
+                paragraph.Inlines.Add(fileContent);
+                FlowDocument document = new FlowDocument(paragraph);
+                FlowDocReader.Document = document;
+
+                string name = ((FrameworkElement)parent).Name;
+                if (name.Equals("File1_Button"))
+                {
+                    File1 = fileContent;
+                }
+                else if (name.Equals("File2_Button"))
+                {
+                    File2 = fileContent;
+                }
+            }
+        }
+
+        private void Compare_Button_Click(object sender, RoutedEventArgs e)
+        {
+            string[] message = { "Comparision results:",
+                "-1: different text in lines",
+                "0: lines are identical",
+                "1: lines are identical except letters size",
+                "2: file1 has empty line whereas file 2 has something",
+                "3: file1 has something whereas file2 has empty line",
+                "4: Both file1 and file2 have empty lines",
+                "------------------" };
+
+            var directory = string.Empty;
+
+            var length = 0;
+            var result1 = 0;
+            var result2 = 0;
+
+            List<string> list = new List<string>();
+
+            string[] file_1 = File1.Split(new[] { "\r\n" }, StringSplitOptions.None);
+            string[] file_2 = File2.Split(new[] { "\r\n" }, StringSplitOptions.None);
+
+            using (var dialog = new System.Windows.Forms.FolderBrowserDialog())
+            {
+                System.Windows.Forms.DialogResult result = dialog.ShowDialog();
+                directory = dialog.SelectedPath;
+            }
+
+            if (file_2.Length < file_1.Length)
+            {
+                length = file_2.Length;
+                list.Add("file1 has more lines than file2");
+            }
+            else if (file_2.Length > file_1.Length)
+            {
+                length = file_1.Length;
+                list.Add("file2 has more lines than file1");
+            }
+
+            for (var i = 0; i < length; i++)
+            {
+                result1 = string.Compare(file_1[i], file_2[i]);     // -1: different; 0: same; 1: same but different size 
+                result2 = string.Compare(file_1[i], file_2[i], true);   // ignoreCase = true
+
+                if (file_1[i] == string.Empty && file_2[i] != string.Empty)
+                    result1 = 2;        // 2 - file1 has empty line whereas file 2 has sth
+                else if (file_2[i] == string.Empty && file_1[i] != string.Empty)
+                    result1 = 3;        // 3 - file1 has sth whereas file2 has empty line
+                else if (file_1[i] == string.Empty && file_2[i] == string.Empty)
+                    result1 = 4;        // 4 - file1 and file2 both have empty lines
+
+                list.Add(("Line: " + i + " - comparision result: " + result1).ToString());
+            }
+
+            File.WriteAllLines(Path.Combine(directory, "Result.txt"), message);
+            File.AppendAllLines(Path.Combine(directory, "Result.txt"), list);
+        }
+    }
+}
